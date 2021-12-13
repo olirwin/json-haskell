@@ -6,6 +6,7 @@ import Control.Applicative
 data JsonValue = JsonNull 
                | JsonBool Bool 
                | JsonNumber Int
+               | JsonFloat Float
                | JsonString String
                | JsonArray [JsonValue]
                | JsonObject [(String, JsonValue)]
@@ -68,6 +69,19 @@ jsonNumber :: Parser JsonValue
 jsonNumber = f <$> notNull (spanP isDigit)
     where f = JsonNumber . read
 
+nullToZero :: Parser String -> Parser String
+nullToZero (Parser p) = Parser $ \input -> do
+    (input', xs) <- p input
+    if null xs
+        then Just (input', "0")
+        else Just (input', xs)
+
+jsonFloat :: Parser JsonValue
+jsonFloat = JsonFloat . read <$> float
+    where
+        float = (\a b c -> a ++ (b:c)) <$> nullToZero (spanP isDigit)
+                                       <*> charP '.' 
+                                       <*> nullToZero (spanP isDigit)
 
 stringLitteral :: Parser String
 stringLitteral = charP '"' *> spanP (/= '"') <* charP '"'
@@ -80,7 +94,6 @@ ws = spanP isSpace
 
 sepBy :: Parser a -> Parser b -> Parser [b]
 sepBy sep element = (:) <$> element <*> many (sep *> element) <|> pure []
-
 
 jsonArray :: Parser JsonValue
 jsonArray = JsonArray <$> (charP '[' 
@@ -104,7 +117,7 @@ jsonObject = JsonObject <$> (charP '{'
 
 
 jsonP :: Parser JsonValue
-jsonP = jsonNull <|> jsonBool <|> jsonNumber 
+jsonP = jsonNull <|> jsonBool <|> jsonFloat <|> jsonNumber
         <|> jsonString <|> jsonArray <|> jsonObject
 
 
