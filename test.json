@@ -6,5 +6,6 @@
         4,
         123
     ],
-    "email" : "testemail@emailer.com"
+    "email" : "testemail@emailer.com",
+    "floating" : 12.50
 }
